@@ -1963,8 +1963,24 @@ struct WidgetEditorView: View {
     }
 
     private var inspectorPanel: some View {
-        // 必須是真正的容器：Group 會把 background／overlay 套在每個子視圖上，
-        // 分類切換讓內容換 id 時，底部原生分頁列也會被銷毀重建，玻璃只能瞬間閃到新位置。
+        // 分類固定在面板頂端（畫布正下方），內容在它下面捲動，不再浮在內容上（2026-10-05 方案 A：
+        // 原本底部的浮動分類列在空間少時擋住內容，縮小後切換分類的玻璃動畫也會出錯）。
+        VStack(spacing: 0) {
+            EditorCategoryPicker(selection: $session.category,
+                                 titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
+                .opacity(model.selectedLayer == nil ? 0 : 1)
+            inspectorContent
+        }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea(edges: .bottom))
+        // 切換分類回到預設狀態：頂端淡化歸零（新分頁的 Form 剛出現時不一定會回報幾何，會沿用上一個分頁的淡化）。
+        .onChange(of: session.category) { _, _ in
+            endEditing()
+            session.inspectorFade.update(scrollOffset: 0)
+        }
+    }
+
+    private var inspectorContent: some View {
+        // 必須是真正的容器：Group 會把 background／mask 套在每個子視圖上。
         ZStack {
             if let layer = model.selectedLayer {
                 if layer.group {
@@ -1986,27 +2002,8 @@ struct WidgetEditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // 只淡化捲動內容；底色保持連續並遮住背後的圖層，玻璃按鈕保持完整亮度。
+        // 只淡化捲動內容（淡出帶從分類下緣開始）；底色由外層提供，保持連續並遮住背後的圖層。
         .mask(alignment: .top) { EditorPanelMask(fade: session.inspectorFade) }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .bottom) {
-            // 分類列改到底部；移除圖層跳轉與步進鈕，將垂直空間還給屬性內容。
-            EditorCategoryBarHost(state: session.categoryBar, selection: $session.category,
-                                  titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
-            // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
-            // （右邊原本有移動步進的「…」，10/05 移進「版面」的位置與大小區塊，右邊改成和左邊一樣。）
-            .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
-            .padding(.vertical, FormlessDesign.Space.floatingBottom)
-            .opacity(keyboard.visible ? 0 : 1)
-            .allowsHitTesting(!keyboard.visible)
-            .accessibilityHidden(keyboard.visible)
-        }
-        // 切換分類回到預設狀態：分類列放大回來、頂端淡化歸零（新分頁的 Form 剛出現時不一定會回報幾何，會沿用上一個分頁的淡化）。
-        .onChange(of: session.category) { _, _ in
-            endEditing()
-            session.categoryBar.set(false)
-            session.inspectorFade.update(scrollOffset: 0)
-        }
     }
 
 
@@ -4505,6 +4502,13 @@ struct DesignTab: View {
                 }
             }
 
+            // 編輯時常用：緊接在名稱與尺寸之後（使用者：相對重要，不放最下面）。
+            Section {
+                Toggle("鎖定畫布", isOn: $canvasLocked)
+            } footer: {
+                Text("鎖定後，不能上下拖曳改變畫布高度。")
+            }
+
             // 這份設計用到的資料與我的資料（2026-10 通用化），整份設計的字型與顏色。
             Section {
                 EditorDesignDataRows(model: model)
@@ -4549,12 +4553,6 @@ struct DesignTab: View {
                 }
             } footer: {
                 Text("實際更新時間由系統依電量與使用情況安排。")
-            }
-
-            Section {
-                Toggle("鎖定畫布", isOn: $canvasLocked)
-            } footer: {
-                Text("鎖定後，不能上下拖曳改變畫布高度。")
             }
         }
         // 讀圖片檔頭、算用量放在背景；設計改了才重算。
@@ -4819,9 +4817,8 @@ struct LayerInspector: View {
                 }
             }
               .background(EditorScrollMemory(session: session, key: layer.id.uuidString + ":" + category))
-              .formlessScrollMinimizer(state: session.categoryBar)
               .scrollDismissesKeyboard(.interactively)
-              // 屬性面板所有區塊都不放標題，頂端統一補上標題原本自帶的留白，畫布到第一張卡片 28 pt。
+              // 屬性面板所有區塊都不放標題，頂端統一補上標題原本自帶的留白（分類下緣到第一張卡片）。
               .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: EditorPanelUnderlap.formHeadlessHeight) }
               .scrollEdgeEffectHidden(true, for: .top)
               .contentMargins(.top, 0, for: .scrollContent)
@@ -5719,10 +5716,10 @@ enum EditorPanelUnderlap {
     /// 工具列下緣到第一個圖層的視覺距離要等於畫布底到工具列上緣（約 20 pt）；8 的時候下面多了 4 pt（使用者指出）。
     /// 淡化遮罩掛在清單上，跟著清單一起移動，淡出帶相對內容不變。
     static let pickingHeight: CGFloat = 4
-    /// 屬性面板 Form 的底部內距（不含安全區）：分類列佔 58（48 + 上下各 5），再留 28 讓最後一張卡片捲到分類列上方不被擋住。
-    static let formBottom: CGFloat = 58 + 28
-    /// 屬性面板頂端內距（區塊都沒有標題）：畫布到第一張卡片 29 pt，和圖層清單完全相同（清單 24 + 卡片外距 5）。
-    static let formHeadlessHeight: CGFloat = formHeight + 13
+    /// 屬性面板 Form 的底部內距（不含安全區）：分類改到頂端後，底部只留一段邊距（原本 58 + 28 讓開浮動分類列）。
+    static let formBottom: CGFloat = 20
+    /// 屬性面板頂端內距（區塊都沒有標題）：分類下緣到第一張卡片約 12 pt（Form 第一張卡片自己還帶一點外距）。
+    static let formHeadlessHeight: CGFloat = 4
     /// 屬性面板 Form 的頂端內距：Form 第一個分段標題本身就帶約 20 pt 的上方留白，補到和清單一樣約 28 pt；
     /// 原本兩份疊在一起有 56 pt，離畫布太遠、浪費空間。
     static let formHeight: CGFloat = 8

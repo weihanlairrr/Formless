@@ -2163,7 +2163,7 @@ struct AppSettingsView: View {
                     NavigationLink {
                         EditorPreferencesView()
                     } label: {
-                        LabeledContent("編輯器", value: "移動 \(Int(nudgeStep))" + (canvasLocked ? "・畫布已鎖定" : ""))
+                        LabeledContent("編輯器", value: "步進 \(Int(nudgeStep))" + (canvasLocked ? "・畫布已鎖定" : ""))
                     }
                     // 匯入的字型（2026-10）：所有設計共用。
                     NavigationLink {
@@ -2211,14 +2211,14 @@ struct EditorPreferencesView: View {
     var body: some View {
         List {
             Section {
-                Picker("移動步進", selection: $nudgeStep) {
+                Picker("步進", selection: $nudgeStep) {
                     Text("小・1").tag(1.0)
                     Text("中・10").tag(10.0)
                     Text("大・50").tag(50.0)
                 }
                 Toggle("鎖定畫布", isOn: $canvasLocked)
             } footer: {
-                Text("移動步進是調整圖層位置與大小時每次加減的數值；鎖定畫布後，不能上下拖曳改變畫布高度。")
+                Text("步進是調整圖層位置與大小時每次加減的數值；鎖定畫布後，不能上下拖曳改變畫布高度。")
             }
         }
         .contentMargins(.top, FormlessDesign.Space.pageTop, for: .scrollContent)
@@ -3700,6 +3700,23 @@ struct FormlessHomeTabBarScaler: UIViewRepresentable {
             if let found = findTabBar(in: subview) { return found }
         }
         return nil
+    }
+}
+
+/// 屬性面板頂端的分類（版面、外觀、內容、其他）：系統的分段控制，固定在畫布正下方，內容在它下面捲動。
+/// 不縮放、不浮在內容上（2026-10-05 方案 A，取代底部的浮動分類列）。上下各留 12，左右照全 App 的邊線。
+struct EditorCategoryPicker: View {
+    @Binding var selection: String
+    let titles: [String]
+    var body: some View {
+        Picker("分類", selection: $selection) {
+            ForEach(titles, id: \.self) { Text($0).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .padding(.horizontal, FormlessDesign.Space.edge)
+        .padding(.vertical, 12)
+        .accessibilityIdentifier("editor-category-tabs")
     }
 }
 
