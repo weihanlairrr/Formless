@@ -3223,53 +3223,74 @@ extension UINavigationBar {
     }
 }
 
+/// 屬性面板的分類列：系統 UITabBar（保留原生 Liquid Glass 與切換動畫），整條等比縮小、文字維持原大小。
+/// 縮放用 view 本身的 transform、固定不變（不跟著捲動、不做動畫）：10/05 試過用 sublayerTransform 跟著捲動縮放，
+/// 切換分類時玻璃動畫會出錯；原本只壓縱向 0.88 的做法用的就是 view 的 transform，切換一直正常。
 final class EditorCompactGlassTabBar: UITabBar {
-    private static let visualScaleY: CGFloat = 0.88
+    /// 整條列的縮放（由容器依目標高度算出）。文字反向放大回原尺寸。
+    var scale: CGFloat = 1 {
+        didSet { if abs(scale - oldValue) > 0.0001 { setNeedsLayout() } }
+    }
     override func layoutSubviews() {
         super.layoutSubviews()
-
-        // 只減少玻璃容器高度，再還原文字的縱向比例，避免字形被壓扁。
-        layer.setAffineTransform(CGAffineTransform(scaleX: 1, y: Self.visualScaleY))
+        layer.setAffineTransform(CGAffineTransform(scaleX: scale, y: scale))
         restoreTextScale(in: self)
     }
 
     private func restoreTextScale(in view: UIView) {
         for subview in view.subviews {
             if let label = subview as? UILabel {
-                label.layer.setAffineTransform(
-                    CGAffineTransform(scaleX: 1, y: 1 / Self.visualScaleY)
-                )
+                label.layer.setAffineTransform(CGAffineTransform(scaleX: 1 / scale, y: 1 / scale))
             }
             restoreTextScale(in: subview)
         }
     }
+
+    /// 玻璃底座（系統的 platter）在分頁列自己座標裡的範圍；找不到時用整條列。
+    var glassFrame: CGRect {
+        subviews.first { NSStringFromClass(type(of: $0)).contains("Platter") }?.frame ?? bounds
+    }
 }
 
-/// 承載分類列的容器：SwiftUI 只排這個容器，分頁列本身是它的子視圖，縮放的 transform 只動子視圖，
-/// 不會被 SwiftUI 重排時覆寫。
+/// 承載分類列的容器：SwiftUI 只排這個容器，分頁列是它的子視圖。
+/// 容器的高度就是玻璃顯示的高度：分頁列先照原尺寸排好、量出玻璃，再等比縮到目標高度、把玻璃對齊容器，
+/// 玻璃不會超出容器被別的畫面蓋掉（10/05 分類列上緣被畫布切掉，就是玻璃比外框高）。
 final class EditorCategoryTabBarContainer: UIView {
     let bar = EditorCompactGlassTabBar()
+    /// 玻璃顯示的高度（系統原本約 56；10/05 使用者要求縮小一點）。
+    static let glassHeight: CGFloat = 46
+    /// 玻璃左右離容器邊的距離：照全 App 的邊線。
+    static let glassInset: CGFloat = FormlessDesign.Space.edge
     override init(frame: CGRect) {
         super.init(frame: frame)
         addSubview(bar)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    // 尺寸完全轉發給分頁列：SwiftUI 量到的是 UITabBar 自己的原生尺寸，和原本直接承載時一樣，
-    // 分頁列不會被硬塞進外層的 48 pt 而壓扁。
-    override var intrinsicContentSize: CGSize { bar.intrinsicContentSize }
-    override func sizeThatFits(_ size: CGSize) -> CGSize { bar.sizeThatFits(size) }
-    override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize { bar.systemLayoutSizeFitting(targetSize) }
-    override func systemLayoutSizeFitting(_ targetSize: CGSize,
-                                          withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority,
-                                          verticalFittingPriority: UILayoutPriority) -> CGSize {
-        bar.systemLayoutSizeFitting(targetSize, withHorizontalFittingPriority: horizontalFittingPriority,
-                                    verticalFittingPriority: verticalFittingPriority)
-    }
+    override var intrinsicContentSize: CGSize { CGSize(width: UIView.noIntrinsicMetric, height: Self.glassHeight) }
+    override func sizeThatFits(_ size: CGSize) -> CGSize { CGSize(width: size.width, height: Self.glassHeight) }
     override func layoutSubviews() {
         super.layoutSubviews()
-        // 用 bounds／center 而不是 frame：帶著 transform 時設 frame 會失真。
-        bar.bounds = bounds
-        bar.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        guard bounds.width > 0 else { return }
+        // 分頁列自己的高度（含系統留給底部的空間）；玻璃貼在上緣。
+        let natural = max(bar.sizeThatFits(CGSize(width: bounds.width, height: .greatestFiniteMagnitude)).height, Self.glassHeight)
+        var width = bounds.width
+        var scale: CGFloat = 1
+        // 量兩次：縮放後要加寬分頁列，縮小後的玻璃才會剛好左右各留 glassInset；玻璃到列邊的距離是系統固定的。
+        for _ in 0..<2 {
+            bar.bounds = CGRect(x: 0, y: 0, width: width, height: natural)
+            bar.layoutIfNeeded()
+            let glass = bar.glassFrame
+            guard glass.height > 0 else { break }
+            scale = min(1, Self.glassHeight / glass.height)
+            width = (bounds.width - 2 * Self.glassInset) / scale + 2 * glass.minX
+        }
+        bar.bounds = CGRect(x: 0, y: 0, width: width, height: natural)
+        bar.layoutIfNeeded()
+        bar.scale = scale
+        // view 的 transform 以中心縮放：讓縮放後的玻璃中心對到容器中心。
+        let glass = bar.glassFrame
+        bar.center = CGPoint(x: bounds.midX - (glass.midX - width / 2) * scale,
+                             y: bounds.midY - (glass.midY - natural / 2) * scale)
         #if DEBUG
         // 開發用：模擬器截圖時把分類列各層的實際範圍記到 Documents/tabbar.txt（啟動參數 -FormlessDebugTabBarDump YES）。
         if UserDefaults.standard.bool(forKey: "FormlessDebugTabBarDump") {
@@ -3279,7 +3300,7 @@ final class EditorCategoryTabBarContainer: UIView {
     }
     #if DEBUG
     private func dumpGeometry() {
-        var lines = ["container \(bounds) window \(convert(bounds, to: nil))"]
+        var lines = ["container \(bounds) window \(convert(bounds, to: nil)) scale \(bar.scale)"]
         func walk(_ view: UIView, _ depth: Int) {
             guard depth <= 5 else { return }
             let frame = view.convert(view.bounds, to: self)
