@@ -2151,12 +2151,11 @@ struct ResizableEditorPreview: View {
     }
 
     private var limits: ClosedRange<CGFloat> {
-        // 畫布高度也代表可操作區與圖層清單的分配；不能用小工具本身的顯示高度封頂，
-        // 否則拖到固定的 520 pt 時會突然卡住。保留至少 100 pt 給下方面板。
+        // 畫布高度也代表可操作區與圖層清單的分配；保留至少 100 pt 給下方面板。
         // 畫布底邊最多拉到螢幕正中間（畫布從螢幕頂端開始，所以用視窗高度的一半扣掉頂端留白），
         // 再高下方面板就沒地方操作了。
         let half = FormlessSafeArea.windowHeight / 2 - contentTopPadding
-        let upper = min(max(150, availableHeight - contentTopPadding - 100), max(150, half))
+        let upper = min(max(150, availableHeight - contentTopPadding - 100), max(150, half), Self.fullWidthHeight(model.document.family))
         return min(120, upper)...upper
     }
 
@@ -2164,7 +2163,15 @@ struct ResizableEditorPreview: View {
     private var maxRenderHeight: CGFloat {
         let top = Self.canvasTop
         let half = FormlessSafeArea.windowHeight / 2 - top
-        return min(max(150, availableHeight - top - 100), max(150, half))
+        return min(max(150, availableHeight - top - 100), max(150, half), Self.fullWidthHeight(model.document.family))
+    }
+
+    /// 小工具撐滿左右邊線時，畫布最多要多高：按鈕列（左上設定、右上復原）＋小工具＋上下各 8。
+    /// 再高只會在小工具上下多出空白（中型、超大型這類扁的小工具，2026-10-05 使用者回報），所以畫布最高就到這裡；
+    /// 高的小工具（小型、大型）先碰到螢幕一半的上限，不受影響。所有尺寸拉到最高時，小工具下緣到圖層清單都只隔 8。
+    static func fullWidthHeight(_ family: FormlessWidgetFamily) -> CGFloat {
+        let width = FormlessSafeArea.windowWidth - 2 * FormlessDesign.Space.edge
+        return (EditorPreview.buttonRowReserve + width / family.aspectRatio + 2 * EditorPreview.verticalInset).rounded(.up)
     }
 
     private func clamp(_ value: CGFloat) -> CGFloat {
@@ -2350,28 +2357,38 @@ struct EditorPreview: View {
     @ObservedObject var model: EditorModel
     var renderingHeight: CGFloat? = nil
     let onSelect: (UUID) -> Void
+    /// 小工具上下各留的距離。
+    static let verticalInset: CGFloat = 8
+    /// 畫布頂端浮著的按鈕列（左上設定、右上復原與重做）的高度。
+    static let buttonRowReserve: CGFloat = 44
     var body: some View {
         GeometryReader { geometry in
             // 左右照全 App 的邊線（離螢幕邊 20），上下各留 8。
             let sideInset = 2 * FormlessDesign.Space.edge
-            let targetWidth = max(1, min(geometry.size.width - sideInset, (geometry.size.height - 16) * model.document.family.aspectRatio))
+            let verticalInsets = 2 * Self.verticalInset
+            let targetWidth = max(1, min(geometry.size.width - sideInset, (geometry.size.height - verticalInsets) * model.document.family.aspectRatio))
             let sourceHeight = renderingHeight ?? geometry.size.height
-            let sourceWidth = max(1, min(geometry.size.width - sideInset, (sourceHeight - 16) * model.document.family.aspectRatio))
+            let sourceWidth = max(1, min(geometry.size.width - sideInset, (sourceHeight - verticalInsets) * model.document.family.aspectRatio))
             let scale = targetWidth / sourceWidth
             // 拖曳中畫布仍以原尺寸繪製、只做縮放。外框要固定成可視區大小並置中，
             // 否則比可視區大的畫布會被貼到左上角，縮小後看起來就往下掉。
             let canvasSize = CGSize(width: sourceWidth, height: sourceWidth / model.document.family.aspectRatio)
+            // 小工具已撐滿左右、上下還有空：多出來的高度先給上面的按鈕列，小工具往下移到按鈕列下方，
+            // 下緣到圖層清單維持 8（和其他尺寸一樣）；超過按鈕列高度的部分才上下平分（拖過頭的橡皮筋）。
+            let excess = max(0, geometry.size.height - verticalInsets - canvasSize.height * scale)
+            let shift = min(excess, Self.buttonRowReserve) / 2
             ZStack {
                 EditorCanvas(model: model, canvasSize: canvasSize, onSelect: onSelect)
                     .equatable()
                     .scaleEffect(scale)
+                    .offset(y: shift)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
-                // 畫布縮放後置中：左上角 = 外框中心 − 縮放後尺寸的一半。
+                // 畫布縮放後置中再往下移 shift：左上角 = 外框中心 − 縮放後尺寸的一半。
                 model.canvasMapping = (CGPoint(x: frame.midX - canvasSize.width * scale / 2,
-                                               y: frame.midY - canvasSize.height * scale / 2), scale, canvasSize)
+                                               y: frame.midY + shift - canvasSize.height * scale / 2), scale, canvasSize)
             }
         }.background(FormlessDesign.Palette.page)
     }
