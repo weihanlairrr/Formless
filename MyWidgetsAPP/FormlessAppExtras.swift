@@ -2202,7 +2202,8 @@ struct AppSettingsView: View {
     }
 }
 
-/// 設定 › 編輯器：移動步進與鎖定畫布（原本在小工具設定，10/03 決定移到這裡；屬性面板「…」裡的移動步進保留）。
+/// 設定 › 編輯器：移動步進與鎖定畫布（原本在小工具設定，10/03 決定移到這裡）。
+/// 10/05 起：移動步進也在屬性面板「版面」與「位置與大小」面板的方塊下方；鎖定畫布也在小工具設定，三處是同一個值。
 struct EditorPreferencesView: View {
     @AppStorage("formless.nudgeStep") private var nudgeStep: Double = 10
     @AppStorage("formless.canvasLocked") private var canvasLocked = false
@@ -3702,7 +3703,7 @@ struct FormlessHomeTabBarScaler: UIViewRepresentable {
     }
 }
 
-/// 屬性面板底部的分類列與右側的「…」：獨立成小視圖、只觀察分類列自己的狀態，捲動中反覆縮放不會重繪整個編輯器。
+/// 屬性面板底部的分類列：獨立成小視圖、只觀察分類列自己的狀態，捲動中反覆縮放不會重繪整個編輯器。
 /// 分類列本身就是原本那條系統 UITabBar，一個項目都不動；縮小只是整條列（連玻璃）以彈簧縮到 0.85，
 /// 像 Instagram 那樣稍微變小，反向捲動、回到頂端或點任一分頁就彈回原尺寸。
 struct EditorCategoryBarHost: View {
@@ -3712,20 +3713,11 @@ struct EditorCategoryBarHost: View {
     let state: FormlessMinimizeState
     @Binding var selection: String
     let titles: [String]
-    let showsNudgeMenu: Bool
     var body: some View {
-        HStack(spacing: 10) {
-            EditorCategoryTabBar(selection: $selection, titles: titles, minimizeState: state) {
-                state.restoreForTabSwitch()
-            }
-            .frame(height: 48)
-            .layoutPriority(1)
-            if showsNudgeMenu {
-                EditorNudgeMenu()
-            }
+        EditorCategoryTabBar(selection: $selection, titles: titles, minimizeState: state) {
+            state.restoreForTabSwitch()
         }
-        .buttonStyle(.glass)
-        .controlSize(.regular)
+        .frame(height: 48)
     }
 }
 

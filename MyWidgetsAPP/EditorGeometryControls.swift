@@ -11,7 +11,6 @@ struct EditorGeometryControls: View, Equatable {
     static func == (lhs: EditorGeometryControls, rhs: EditorGeometryControls) -> Bool {
         lhs.model === rhs.model && lhs.session === rhs.session && lhs.ids == rhs.ids && lhs.measures == rhs.measures
     }
-    /// 選取模式的「位置與對齊」面板沒有屬性面板右下角的「…」，步進選單放在位置與大小方塊區的右上角（步進屬於位置與大小）。
     init(model: EditorModel, ids: Set<UUID>, session: EditorSession? = nil, measures: Bool = true) {
         self.model = model
         self.ids = ids
@@ -198,6 +197,22 @@ struct EditorGeometryControls: View, Equatable {
         }
         .padding(.vertical, 4)
     }
+    /// 移動步進：方向鍵每按一下加減多少。只影響位置與大小，所以放在方塊正下方一列，用系統的分段控制
+    /// （原本在屬性面板分類列右邊的「…」選單，2026-10-05 移進來）。
+    private var stepRow: some View {
+        HStack(spacing: 12) {
+            Text("移動步進")
+            Spacer(minLength: 0)
+            Picker("移動步進", selection: $step) {
+                Text("1").tag(1.0)
+                Text("10").tag(10.0)
+                Text("50").tag(50.0)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 150)
+        }
+    }
     enum GeometryEntryKind { case position, size }
     private func nudge(dx: Double, dy: Double) {
         edit(dx != 0 ? "visibleLeft" : "visibleTop") { model.translate(ids, dx: dx, dy: dy) }
@@ -293,6 +308,7 @@ struct EditorGeometryControls: View, Equatable {
                 if locked { lockedNotice }
                 // 對齊一律在方塊下方，多選的「位置與對齊」面板和屬性面板同一個順序。
                 lockedDimmed(pads(frame), locked: locked)
+                lockedDimmed(stepRow, locked: locked)
                 lockedDimmed(alignmentControls, locked: locked)
             }
         } else {

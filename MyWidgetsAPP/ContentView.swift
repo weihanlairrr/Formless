@@ -1990,14 +1990,12 @@ struct WidgetEditorView: View {
         .mask(alignment: .top) { EditorPanelMask(fade: session.inspectorFade) }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .bottom) {
-            // 分類列改到底部；移除圖層跳轉與獨立步進鈕，將垂直空間還給屬性內容。
+            // 分類列改到底部；移除圖層跳轉與步進鈕，將垂直空間還給屬性內容。
             EditorCategoryBarHost(state: session.categoryBar, selection: $session.category,
-                                  titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"],
-                                  showsNudgeMenu: model.selectedLayer != nil)
-            // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條的左緣才會落在 20，
-            // 和右邊「…」離螢幕邊的 20 相同（原本框在 16，玻璃條實際在 36，左右不對稱）。
-            .padding(.leading, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
-            .padding(.trailing, FormlessDesign.Space.edge)
+                                  titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
+            // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
+            // （右邊原本有移動步進的「…」，10/05 移進「版面」的位置與大小區塊，右邊改成和左邊一樣。）
+            .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
             .padding(.vertical, FormlessDesign.Space.floatingBottom)
             .opacity(keyboard.visible ? 0 : 1)
             .allowsHitTesting(!keyboard.visible)
@@ -3471,7 +3469,7 @@ struct EditorToolPanelLayer: View {
 /// 選取模式的「位置與大小」工具面板：畫在編輯器畫面裡，不是系統 sheet（系統的半高 sheet 會縮小浮起，
 /// 和「小工具設定」的滿版面板長得不一樣）。底色、頂端圓角、滑上來的方式比照「小工具設定」；
 /// 上緣固定在螢幕一半（畫布最高只拉到螢幕一半，面板永遠不擋畫布），標題列和其他半高面板相同，點面板外關閉。
-/// 方塊和屬性面板一樣大，內容比半個螢幕高時可以捲動；步進「…」和屬性面板一樣浮在右下角。
+/// 方塊和屬性面板一樣大，內容比半個螢幕高時可以捲動；移動步進在方塊下方那一列。
 struct BatchPositionPanel: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var session: EditorSession
@@ -3499,7 +3497,6 @@ struct BatchPositionPanel: View {
         // 標題字到卡片的距離就和卡片到左右邊的 20 pt 差不多；再加一段邊距會多出一塊空白（使用者指出）。
         .contentMargins(.top, 0, for: .scrollContent)
         // 底部只留一個邊距加螢幕底部安全區：面板高度（螢幕 60%）放得下全部內容，不需要捲動（使用者要求）。
-        // 「…」浮在右下角、不佔位置，落在卡片下緣的留白上，不蓋到任何按鈕。
         // 內容放得下就不會有捲動軸；拖動仍會回彈（和其他清單一樣），也保留給鍵盤避讓把欄位捲到鍵盤上方。
         .contentMargins(.bottom, Self.margin + FormlessSafeArea.bottom, for: .scrollContent)
         .scrollIndicators(.hidden)
@@ -3510,14 +3507,6 @@ struct BatchPositionPanel: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.titleBar)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            EditorNudgeMenu()
-                .buttonStyle(.glass)
-                .controlSize(.regular)
-                .frame(height: FormlessDesign.Size.floatingBar)
-                .padding(.trailing, FormlessDesign.Space.edge)
-                .padding(.bottom, FormlessDesign.Space.floatingBottom + FormlessSafeArea.bottom)
         }
         .editorToolPanel(height: height, active: shown) { session.batchPositionOpen = false }
     }
@@ -4443,25 +4432,6 @@ struct EditorListRow: View {
     }
 }
 
-struct EditorNudgeMenu: View {
-    @AppStorage("formless.nudgeStep") private var nudgeStep: Double = 10
-    var body: some View {
-        Menu {
-            Picker("移動步進", selection: $nudgeStep) {
-                Text("小・1").tag(1.0)
-                Text("中・10").tag(10.0)
-                Text("大・50").tag(50.0)
-            }
-        } label: {
-            Label("移動步進", systemImage: "ellipsis")
-                .frame(width: 20, height: 20)
-        }
-        .labelStyle(.iconOnly)
-        .controlSize(.regular)
-        .offset(y: -7)
-        .accessibilityLabel("移動步進")
-    }
-}
 struct EditorLayerActions: View {
     @ObservedObject var model: EditorModel
     let layer: FormlessLayer
@@ -4498,6 +4468,8 @@ struct EditorLayerActions: View {
 struct DesignTab: View {
 
     @ObservedObject var model: EditorModel
+    /// 和「設定 › 編輯器」同一個開關（所有小工具共用），編輯時不必離開編輯器就能切換（2026-10-05）。
+    @AppStorage("formless.canvasLocked") private var canvasLocked = false
     /// 小工具的記憶體估算（2026-10）：超過才顯示警告。
     @State private var memory: FormlessMemoryEstimate?
 
@@ -4560,6 +4532,12 @@ struct DesignTab: View {
                 }
             } footer: {
                 Text("實際更新時間由系統依電量與使用情況安排。")
+            }
+
+            Section {
+                Toggle("鎖定畫布", isOn: $canvasLocked)
+            } footer: {
+                Text("鎖定後，不能上下拖曳改變畫布高度。")
             }
         }
         // 讀圖片檔頭、算用量放在背景；設計改了才重算。
