@@ -198,21 +198,25 @@ struct EditorGeometryControls: View, Equatable {
         .padding(.vertical, 4)
     }
     /// 移動步進：方向鍵每按一下加減多少，是方向鍵的設定，和方向鍵放在同一列、中間不加分隔線（使用者：屬於移動、不屬於對齊）。
-    /// 原本在屬性面板分類列右邊的「…」選單，2026-10-05 移進來。
-    private var stepRow: some View {
-        HStack(spacing: 12) {
-            Text("移動步進")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    /// 放在方塊右上方，和對齊區的「對齊基準」同一種選單：點了才列出選項，不會按方向鍵時誤點到
+    /// （10/05 先做成方塊下方的分段控制，緊貼「向下」鍵，使用者回報容易誤點）。原本在屬性面板分類列右邊的「…」選單。
+    private static let stepChoices: [Double] = [1, 10, 50]
+    private var stepMenu: some View {
+        HStack {
             Spacer(minLength: 0)
-            Picker("移動步進", selection: $step) {
-                Text("1").tag(1.0)
-                Text("10").tag(10.0)
-                Text("50").tag(50.0)
+            FormlessOptionMenu(options: Self.stepChoices.map { FormlessMenuOption(id: AnyHashable($0), title: "\(Int($0))") },
+                               selection: AnyHashable(step),
+                               onSelect: { id in if let value = id.base as? Double { step = value } }) {
+                HStack(spacing: 4) {
+                    Text("移動步進：\(Int(step))")
+                    Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                // 和「對齊基準」相同：上下各補 6 pt 讓可點區接近按鈕高度。
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 150)
         }
     }
     enum GeometryEntryKind { case position, size }
@@ -256,9 +260,9 @@ struct EditorGeometryControls: View, Equatable {
     }
     @State private var padRowWidth: CGFloat?
     private func pads(_ frame: FormlessFrame) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 8) {
+            stepMenu
             padRow(frame, size: padSize)
-            stepRow
         }
             .frame(maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { padRowWidth = $0 }
