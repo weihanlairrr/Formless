@@ -1917,6 +1917,14 @@ struct WidgetEditorView: View {
             if let tab = defaults.string(forKey: "FormlessDebugTab") { session.category = tab }
             select(layer.id)
             try? await Task.sleep(for: .milliseconds(700))
+            // -FormlessDebugCycleTabs YES：依序切換分類（模擬器錄影檢查分類列的切換動畫）。
+            if defaults.bool(forKey: "FormlessDebugCycleTabs") {
+                try? await Task.sleep(for: .seconds(2))
+                for tab in ["外觀", "內容", "其他", "版面", "內容", "版面"] {
+                    session.category = tab
+                    try? await Task.sleep(for: .milliseconds(1300))
+                }
+            }
             switch defaults.string(forKey: "FormlessDebugPanel") {
             case "data"?: session.toolPanels.data = EditorDataPanelRequest(layerID: layer.id, target: .insertSegment(nil))
             case "format"?: session.toolPanels.format = EditorFormatPanelRequest(layerID: layer.id, slot: .segment(defaults.integer(forKey: "FormlessDebugSegment")))

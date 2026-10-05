@@ -93,14 +93,18 @@ jobs:
           shot 5-大型-小工具設定 -FormlessDebugOpen 11111111-0000-0000-0000-000000000003 -FormlessDebugPanel design
           ls -la shots
 
-      # 實際點分類列切換、錄下來，確認玻璃的切換動畫正常。
+      # 實際點分類列切換、錄下來，確認玻璃的切換動畫正常（idb 模擬手指點擊）。
       - name: 錄影（點分類列切換）
         continue-on-error: true
         run: |
-          brew tap facebook/fb >/dev/null 2>&1 || true
-          brew install idb-companion >/dev/null 2>&1 || true
-          pip3 install --break-system-packages fb-idb >/dev/null 2>&1 || pip3 install fb-idb >/dev/null 2>&1 || true
-          which idb idb_companion || true
+          exec > >(tee shots/record-log.txt) 2>&1
+          brew install facebook/fb/idb-companion || echo "idb-companion 安裝失敗"
+          python3 -m pip install --break-system-packages fb-idb || python3 -m pip install --user fb-idb || echo "fb-idb 安裝失敗"
+          export PATH="$PATH:$(python3 -m site --user-base)/bin"
+          which idb idb_companion
+          idb_companion --udid "$UDID" --grpc-port 10882 > shots/companion-log.txt 2>&1 &
+          sleep 6
+          idb connect localhost 10882 || echo "連線失敗"
           xcrun simctl terminate "$UDID" com.weihan.formless 2>/dev/null || true
           xcrun simctl launch "$UDID" com.weihan.formless -FormlessDebugSkipPermissions YES -FormlessDebugOpen 11111111-0000-0000-0000-000000000003 -FormlessDebugLayer 標題 -FormlessDebugTab 版面 -FormlessDebugTabBarDump YES
           sleep 9
@@ -114,9 +118,22 @@ jobs:
           for i in 1 2 3 0 2 0; do
             TX=$(python3 -c "print(round(20+($W-40)*($i+0.5)/4))")
             TY=$(python3 -c "print(round($Y+$H/2))")
-            idb ui tap --udid "$UDID" "$TX" "$TY" || echo "點擊失敗"
+            idb ui tap --udid "$UDID" "$TX" "$TY" || idb ui tap "$TX" "$TY" || echo "點擊失敗 $TX $TY"
             sleep 1.3
           done
+          kill -INT $REC; wait $REC || true
+          echo "::notice::$(tail -c 1500 shots/record-log.txt | tr '\n' ' ')"
+
+      # 備用：App 自己依序切換分類（不經手指），錄下來看玻璃移動。
+      - name: 錄影（程式切換分類）
+        continue-on-error: true
+        run: |
+          xcrun simctl terminate "$UDID" com.weihan.formless 2>/dev/null || true
+          xcrun simctl io "$UDID" recordVideo --codec h264 --force shots/switch-auto.mp4 &
+          REC=$!
+          sleep 1
+          xcrun simctl launch "$UDID" com.weihan.formless -FormlessDebugSkipPermissions YES -FormlessDebugOpen 11111111-0000-0000-0000-000000000003 -FormlessDebugLayer 標題 -FormlessDebugTab 版面 -FormlessDebugCycleTabs YES
+          sleep 16
           kill -INT $REC; wait $REC || true
           ls -la shots
 
