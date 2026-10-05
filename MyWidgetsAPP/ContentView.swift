@@ -1978,7 +1978,9 @@ struct WidgetEditorView: View {
                 .frame(height: 48)
                 // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
                 .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
-                .padding(.top, 6)
+                // 系統分頁列的玻璃比 48 的框高、而且貼著框的下緣畫，會往上超出框約 12：上面多留這段，
+                // 玻璃才不會被畫布蓋掉一截（10/05 使用者回報分類列上緣被切掉）。
+                .padding(.top, 20)
                 .padding(.bottom, 2)
                 .opacity(model.selectedLayer == nil ? 0 : 1)
             inspectorContent

@@ -3270,7 +3270,28 @@ final class EditorCategoryTabBarContainer: UIView {
         // 用 bounds／center 而不是 frame：帶著 transform 時設 frame 會失真。
         bar.bounds = bounds
         bar.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        #if DEBUG
+        // 開發用：模擬器截圖時把分類列各層的實際範圍記到 Documents/tabbar.txt（啟動參數 -FormlessDebugTabBarDump YES）。
+        if UserDefaults.standard.bool(forKey: "FormlessDebugTabBarDump") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.dumpGeometry() }
+        }
+        #endif
     }
+    #if DEBUG
+    private func dumpGeometry() {
+        var lines = ["container \(bounds) window \(convert(bounds, to: nil))"]
+        func walk(_ view: UIView, _ depth: Int) {
+            guard depth <= 5 else { return }
+            let frame = view.convert(view.bounds, to: self)
+            lines.append(String(repeating: "  ", count: depth) + "\(type(of: view)) \(frame.integral) hidden=\(view.isHidden) alpha=\(view.alpha)")
+            view.subviews.forEach { walk($0, depth + 1) }
+        }
+        walk(bar, 0)
+        if let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("tabbar.txt") {
+            try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+    #endif
 }
 
 /// 使用與首頁底部分頁相同的系統 UITabBar，保留原生 Liquid Glass 動態與選取染色。
