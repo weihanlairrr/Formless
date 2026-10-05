@@ -1980,15 +1980,16 @@ struct WidgetEditorView: View {
         // 原本底部的浮動分類列在空間少時擋住內容，縮小後切換分類的玻璃動畫也會出錯）。
         // 分類列本身和原本一樣是系統 UITabBar 的 Liquid Glass（使用者要求保留），大小不變、不跟著捲動縮放。
         // 分類列和內容是同一個 VStack 的兄弟：切換分類時只有內容換 id，分類列不會被重建，玻璃動畫才能完整播完。
-        VStack(spacing: 0) {
+        // 分類列浮在內容上面：內容往上捲時從分類列底下經過，淡化也發生在分類列底下（10/05 使用者：
+        // 原本內容從分類列下緣才開始，淡出帶又往下長，可用空間更少）。停住時第一張卡片在分類列下方。
+        ZStack(alignment: .top) {
+            inspectorContent
             EditorCategoryTabBar(selection: $session.category,
                                  titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
                 // 容器的高度就是玻璃的高度、從螢幕邊開始（玻璃左右各離 20 由容器自己排），不會超出去被畫布蓋掉。
                 .frame(height: EditorCategoryTabBarContainer.glassHeight)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+                .padding(.top, EditorPanelUnderlap.categoryTop)
                 .opacity(model.selectedLayer == nil ? 0 : 1)
-            inspectorContent
         }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea(edges: .bottom))
         // 切換分類回到預設狀態：頂端淡化歸零（新分頁的 Form 剛出現時不一定會回報幾何，會沿用上一個分頁的淡化）。
@@ -5738,8 +5739,11 @@ enum EditorPanelUnderlap {
     static let pickingHeight: CGFloat = 4
     /// 屬性面板 Form 的底部內距（不含安全區）：分類改到頂端後，底部只留一段邊距（原本 58 + 28 讓開浮動分類列）。
     static let formBottom: CGFloat = 20
-    /// 屬性面板頂端內距（區塊都沒有標題）：分類下緣到第一張卡片約 12 pt（Form 第一張卡片自己還帶一點外距）。
-    static let formHeadlessHeight: CGFloat = 4
+    /// 分類列（浮在屬性面板頂端）上緣離畫布的距離。
+    static let categoryTop: CGFloat = 12
+    /// 屬性面板頂端內距（區塊都沒有標題）：分類列浮在內容上面，停住時第一張卡片在分類列下方約 12 pt
+    /// （Form 第一張卡片自己還帶約 8 pt 外距）；往上捲時內容從分類列底下經過、在那裡淡出。
+    static let formHeadlessHeight: CGFloat = categoryTop + EditorCategoryTabBarContainer.glassHeight + 4
     /// 屬性面板 Form 的頂端內距：Form 第一個分段標題本身就帶約 20 pt 的上方留白，補到和清單一樣約 28 pt；
     /// 原本兩份疊在一起有 56 pt，離畫布太遠、浪費空間。
     static let formHeight: CGFloat = 8
