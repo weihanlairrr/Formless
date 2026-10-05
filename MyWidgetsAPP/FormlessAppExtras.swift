@@ -3350,12 +3350,6 @@ struct EditorCategoryTabBar: UIViewRepresentable {
     /// 擁有它的整個首頁（三個分頁一起）或分類列就重畫一次：捲到縮小的那一刻、縮小後切換分頁時，
     /// 都和分頁切換、捲動擠在同一格裡做，縮小過之後切換分頁就容易卡一下。
     private(set) var minimized = false
-    /// 一直維持縮小、不跟著捲動放大（屬性面板的分類列，2026-10-05 使用者要求試試看：原尺寸在空間少時會擋住屬性內容）。
-    let pinnedMinimized: Bool
-    init(pinnedMinimized: Bool = false) {
-        self.pinnedMinimized = pinnedMinimized
-        minimized = pinnedMinimized
-    }
     /// 縮小時整條列的縮放比例（Instagram 量起來約 0.83～0.85）。
     static let minimizedScale: CGFloat = 0.85
     /// 要縮放的圖層（分頁列的 layer），由分頁列自己登記；每次狀態改變或捲動事件都重新套用一次，
@@ -3365,32 +3359,29 @@ struct EditorCategoryTabBar: UIViewRepresentable {
     func register(_ resolve: @escaping () -> CALayer?) {
         layers.append(resolve)
         layers.removeAll { $0() == nil }
-        // 一直縮小的列：一出現就是縮小的樣子，不從原尺寸縮下去。
-        apply(animated: !pinnedMinimized)
+        apply()
     }
     func set(_ minimized: Bool) {
-        let minimized = pinnedMinimized || minimized
         if self.minimized != minimized { self.minimized = minimized }
         apply()
     }
     /// 點分頁（切換分頁／分類）時用：直接定格在原尺寸，不跑縮放動畫。系統的分頁切換（鏡片滑動）動畫會和縮放的彈簧
     /// 動畫同時重繪整條玻璃，兩個疊在一起就卡；例如在捲不動的頁面回彈、分類列正在恢復時立刻點別的分類。
     func restoreForTabSwitch() {
-        minimized = pinnedMinimized
-        let resting = pinnedMinimized ? CATransform3DMakeScale(Self.minimizedScale, Self.minimizedScale, 1) : CATransform3DIdentity
+        minimized = false
         for resolve in layers {
             guard let layer = resolve() else { continue }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             layer.removeAnimation(forKey: "formlessMinimize")
-            layer.sublayerTransform = resting
+            layer.sublayerTransform = CATransform3DIdentity
             CATransaction.commit()
         }
     }
     /// 把目前狀態套到所有登記的圖層；已經在正確狀態（或正在往正確狀態動畫）的圖層不動。
-    func apply(animated: Bool = true) {
+    func apply() {
         let scale = minimized ? Self.minimizedScale : 1
-        for resolve in layers { if let layer = resolve() { Self.applyScale(scale, to: layer, animated: animated) } }
+        for resolve in layers { if let layer = resolve() { Self.applyScale(scale, to: layer) } }
     }
 
     /// 把整條列的縮放套到 layer 的 sublayerTransform（縮的是所有子圖層：玻璃、標題、鏡片），
