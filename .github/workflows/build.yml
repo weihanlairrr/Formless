@@ -1,0 +1,68 @@
+# 推到 main 就在 GitHub 的 Mac 上編譯，打包成 SideStore 可以安裝的 .ipa，放到 Releases。
+# 不需要 Apple 憑證：只做假簽名（ldid）把 App Group 權限寫進去，真正的簽名由手機上的 SideStore 處理。
+name: 編譯
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 選擇 Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          XC=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          [ -z "$XC" ] && XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: 編譯
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project MyWidgetsAPP.xcodeproj \
+            -scheme Formless \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: 編譯錯誤
+        if: failure()
+        run: grep -E "error:" build.log | sort -u | head -50 || true
+
+      - name: 打包 ipa
+        run: |
+          brew install ldid
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          APP="Payload/$(basename "$APP")"
+          for EXT in "$APP"/PlugIns/*.appex; do
+            ldid -SFormlessWidgetsExtension.entitlements "$EXT"
+          done
+          ldid -SMyWidgetsAPP/MyWidgetsAPP.entitlements "$APP"
+          NAME="Formless-$(TZ=Asia/Taipei date +%m%d-%H%M)"
+          zip -qry "$NAME.ipa" Payload
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: 發布到 Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git log -1 --format=%B > notes.txt
+          gh release create "$NAME" "$NAME.ipa" --title "$NAME" --notes-file notes.txt --target "$GITHUB_SHA"
