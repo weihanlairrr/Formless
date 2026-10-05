@@ -2423,15 +2423,26 @@ enum FormlessStorage {
                 for name in layer.imageSet ?? [] { names.insert(name) }
             }
         }
-        for name in names {
-            guard name == URL(fileURLWithPath: name).lastPathComponent,
-                  let directory = assetsDirectoryURL else { throw FormlessError.missingAsset }
-            guard let data = try? Data(contentsOf: directory.appendingPathComponent(name)) else {
-                throw FormlessError.missingAsset
+        // 讀不到的圖片直接略過，不讓整份匯出失敗：App 裡那張圖本來就只顯示「圖片」佔位框，
+        // 匯入後也一樣。原本這裡會丟錯誤，分享表的「儲存至檔案」收到錯誤不會關閉，一直停在載入中（2026-10-05）。
+        if let directory = assetsDirectoryURL {
+            for name in names where !name.isEmpty && name == URL(fileURLWithPath: name).lastPathComponent {
+                guard let data = try? Data(contentsOf: directory.appendingPathComponent(name)) else { continue }
+                bundle.assets[name] = data
             }
-            bundle.assets[name] = data
         }
         return try encoder.encode(bundle)
+    }
+
+    /// 匯出包寫成暫存檔，給分享表用（存到檔案、傳給別人）。每次放在新的子資料夾，檔名照設計名稱、不互相覆蓋。
+    nonisolated static func writeBundleFile(_ documents: [FormlessDocument], fileName: String) throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FormlessExport", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent(fileName)
+        try encodeBundle(documents).write(to: url, options: .atomic)
+        return url
     }
 
     /// 匯入。單份設計、設計陣列、或匯出包都吃得下。

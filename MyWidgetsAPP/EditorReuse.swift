@@ -8,7 +8,6 @@ import UniformTypeIdentifiers
 //
 // 我的組合：群組「⋯」›「儲存為我的組合」，新增圖層面板最下面一張卡片放回任何設計（FormlessComponentStore）。
 // 拷貝樣式、貼上樣式：圖層「⋯」裡兩項，只貼對方用得到的欄位（FormlessLayerStyle）。
-// 匯出圖片：首頁設計列的長按選單，畫成 PNG 用系統分享表分享。
 // 版本紀錄：小工具設定 › 版本紀錄，列出最近 10 個版本，點了可以回復（FormlessVersionStore）。
 
 extension FormlessDesign.Size {
@@ -368,7 +367,7 @@ struct EditorComponentThumbnail: View {
 
 // MARK: - 畫圖
 
-/// 組合縮圖、版本縮圖、匯出圖片共用的繪製：和首頁縮圖一樣用 ImageRenderer，資源同步讀進來
+/// 組合縮圖、版本縮圖共用的繪製：和首頁縮圖一樣用 ImageRenderer，資源同步讀進來
 /// （非同步載入的話 ImageRenderer 會拍到還沒載好的空畫面，見 `FormlessRenderContext.synchronousAssets`）。
 @MainActor
 enum EditorReuseRenderer {
@@ -414,79 +413,6 @@ enum EditorReuseRenderer {
             .frame(width: size.width, height: size.height))
         renderer.scale = max(2, UITraitCollection.current.displayScale)
         return renderer.uiImage
-    }
-
-    /// 匯出的 PNG：設計的參考尺寸、3 倍；外框照小工具的圓角，外圍透明。
-    /// 深淺色照目前的外觀（桌面上的小工具此刻就是這個樣子）。
-    static func png(document: FormlessDocument, live: FormlessLiveData, dark: Bool) -> Data? {
-        let family = document.family
-        let size = CGSize(width: family.referenceWidth, height: family.referenceHeight)
-        let outline = RoundedRectangle(cornerRadius: family.cornerRadius, style: .continuous)
-        FormlessRenderContext.synchronousAssets = true
-        defer { FormlessRenderContext.synchronousAssets = false }
-        let content = FormlessDocumentView(document: document, live: live)
-            .frame(width: size.width, height: size.height)
-            .clipShape(outline)
-            .environment(\.colorScheme, dark ? .dark : .light)
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 3
-        renderer.isOpaque = false
-        return renderer.uiImage?.pngData()
-    }
-}
-
-// MARK: - 匯出圖片
-
-enum FormlessDesignImageError: LocalizedError {
-    case renderFailed
-
-    var errorDescription: String? { "無法產生圖片。" }
-}
-
-/// 分享表的項目：真的要分享（或存到照片、檔案）時才畫，打開選單不畫。
-struct FormlessDesignImageExport: Transferable {
-    let document: FormlessDocument
-    let dark: Bool
-
-    var fileName: String {
-        let name = document.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return (name.isEmpty ? "Formless" : name.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")) + ".png"
-    }
-
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .png) { item in
-            try await item.pngData()
-        }
-        .suggestedFileName { $0.fileName }
-    }
-
-    /// 實際的資料用快取（和首頁縮圖同一份），不在分享時重新抓。
-    func pngData() async throws -> Data {
-        let live = await EditorReuseCenter.liveData(for: document)
-        guard let data = await EditorReuseRenderer.png(document: document, live: live, dark: dark) else {
-            throw FormlessDesignImageError.renderFailed
-        }
-        return data
-    }
-}
-
-/// 首頁設計列長按選單的「匯出圖片」：系統分享表（存到照片、檔案、傳給別人）。
-struct FormlessExportImageMenuItem: View {
-    let document: FormlessDocument
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        let item = FormlessDesignImageExport(document: document, dark: colorScheme == .dark)
-        // 分享表上方的預覽用首頁已經畫好的縮圖，打開選單時不另外畫。
-        if let thumbnail = FormlessThumbnailCache.shared.cached(document, size: document.family.listThumbnailSize) {
-            ShareLink(item: item, preview: SharePreview(document.name, image: Image(uiImage: thumbnail))) { label }
-        } else {
-            ShareLink(item: item, preview: SharePreview(document.name)) { label }
-        }
-    }
-
-    private var label: some View {
-        Label("匯出圖片", systemImage: "photo")
     }
 }
 

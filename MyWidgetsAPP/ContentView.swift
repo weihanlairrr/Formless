@@ -368,8 +368,6 @@ struct ContentView: View {
                 Label("匯出", systemImage: "square.and.arrow.up")
             }
 
-            // 畫成圖片分享或存到照片（2026-10）。
-            FormlessExportImageMenuItem(document: document)
 
             Button {
                 renamingDocumentID = document.id
@@ -1686,11 +1684,11 @@ struct FormlessBundleExport: Transferable {
         return "Formless-\(documents.count)份.json"
     }
 
+    // 用檔案交給分享表（原本是 DataRepresentation）：「儲存至檔案」拿到的是寫好的 .json 檔。
     static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .json) { item in
-            try FormlessStorage.encodeBundle(item.documents)
+        FileRepresentation(exportedContentType: .json) { item in
+            SentTransferredFile(try FormlessStorage.writeBundleFile(item.documents, fileName: item.fileName))
         }
-        .suggestedFileName { $0.fileName }
     }
 }
 
