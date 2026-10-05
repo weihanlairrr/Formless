@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hant</string>
+	</array>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>顯示今日行程需要讀取你的行事曆。</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>顯示今日行程需要讀取你的行事曆。</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>顯示提醒事項需要讀取你的提醒事項。</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>顯示提醒事項需要讀取你的提醒事項。</string>
+	<key>NSMotionUsageDescription</key>
+	<string>顯示步數需要讀取動作與健身資料。</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>顯示步數需要讀取健康資料中的步數。</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Formless 不會寫入任何健康資料。</string>
+</dict>
+</plist>
