@@ -630,8 +630,9 @@ final class EditorSession: ObservableObject {
         didSet { if !inspecting { categoryBar.set(false) } }
     }
     /// 屬性面板底部分類列的縮放狀態（仿 iOS 26 分頁列的 minimize）。獨立的物件、只有分類列自己觀察：
-    /// 捲動中反覆縮放時不必重繪整個編輯器，也不會在捲動時卡頓。離開面板時還原。
-    let categoryBar = FormlessMinimizeState()
+    /// 捲動中反覆縮放時不必重繪整個編輯器，也不會在捲動時卡頓。
+    /// 2026-10-05 起一直維持縮小（使用者要求試試看）；改回跟著捲動縮放只要拿掉 `pinnedMinimized`。
+    let categoryBar = FormlessMinimizeState(pinnedMinimized: true)
     /// 圖層清單／屬性面板頂端淡化的強度：只在內容真的往上捲進留白時出現，停在初始位置完全不淡。
     let listFade = EditorEdgeFade()
     let inspectorFade = EditorEdgeFade()
