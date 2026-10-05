@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    # 專案要 iOS 27 SDK：macos-26 只有 Xcode 26，改用預覽中的 Xcode 27 映像。
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
