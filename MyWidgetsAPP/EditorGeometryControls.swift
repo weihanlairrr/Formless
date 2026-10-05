@@ -197,11 +197,13 @@ struct EditorGeometryControls: View, Equatable {
         }
         .padding(.vertical, 4)
     }
-    /// 移動步進：方向鍵每按一下加減多少。只影響位置與大小，所以放在方塊正下方一列，用系統的分段控制
-    /// （原本在屬性面板分類列右邊的「…」選單，2026-10-05 移進來）。
+    /// 移動步進：方向鍵每按一下加減多少，是方向鍵的設定，和方向鍵放在同一列、中間不加分隔線（使用者：屬於移動、不屬於對齊）。
+    /// 原本在屬性面板分類列右邊的「…」選單，2026-10-05 移進來。
     private var stepRow: some View {
         HStack(spacing: 12) {
             Text("移動步進")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Picker("移動步進", selection: $step) {
                 Text("1").tag(1.0)
@@ -254,7 +256,10 @@ struct EditorGeometryControls: View, Equatable {
     }
     @State private var padRowWidth: CGFloat?
     private func pads(_ frame: FormlessFrame) -> some View {
-        padRow(frame, size: padSize)
+        VStack(spacing: 16) {
+            padRow(frame, size: padSize)
+            stepRow
+        }
             .frame(maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { padRowWidth = $0 }
             .listRowInsets(EdgeInsets(top: Self.padRowInset, leading: Self.padRowInset,
@@ -308,7 +313,6 @@ struct EditorGeometryControls: View, Equatable {
                 if locked { lockedNotice }
                 // 對齊一律在方塊下方，多選的「位置與對齊」面板和屬性面板同一個順序。
                 lockedDimmed(pads(frame), locked: locked)
-                lockedDimmed(stepRow, locked: locked)
                 lockedDimmed(alignmentControls, locked: locked)
             }
         } else {
