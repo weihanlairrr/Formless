@@ -3770,7 +3770,8 @@ struct EditorCategoryBarHost: View {
         EditorCategoryTabBar(selection: $selection, titles: titles, minimizeState: state) {
             state.restoreForTabSwitch()
         }
-        .frame(height: 48)
+        // 容器的高度就是玻璃的高度（10/05 縮小到 46），玻璃左右各離螢幕邊 20 由容器自己排。
+        .frame(height: EditorCategoryTabBarContainer.glassHeight)
     }
 }
 

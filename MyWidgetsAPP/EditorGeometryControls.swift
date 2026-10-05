@@ -691,6 +691,7 @@ struct EditorGroupInspector: View {
             }
         }
         .background(EditorScrollMemory(session: session, key: id.uuidString + ":" + category))
+        .formlessScrollMinimizer(state: session.categoryBar)
         .scrollDismissesKeyboard(.interactively)
         // 屬性面板所有區塊都不放標題，頂端統一補上標題原本自帶的留白。
         .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: EditorPanelUnderlap.formHeadlessHeight) }
