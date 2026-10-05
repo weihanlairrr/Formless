@@ -313,10 +313,13 @@ struct EditorGeometryControls: View, Equatable {
     var body: some View {
         if let frame = (measures ? model.visibleBounds(of: ids) : nil) ?? model.bounds(of: ids) {
             let locked = self.locked
+            // 位置與大小、對齊各一張卡片（2026-10-05 使用者要求，原本同一張卡片用分隔線隔開）。
+            // 對齊一律在方塊下方，多選的「位置與對齊」面板和屬性面板同一個順序。
             Section {
                 if locked { lockedNotice }
-                // 對齊一律在方塊下方，多選的「位置與對齊」面板和屬性面板同一個順序。
                 lockedDimmed(pads(frame), locked: locked)
+            }
+            Section {
                 lockedDimmed(alignmentControls, locked: locked)
             }
         } else {
