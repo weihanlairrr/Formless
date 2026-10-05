@@ -101,7 +101,7 @@ jobs:
           brew install facebook/fb/idb-companion || echo "idb-companion 安裝失敗"
           python3 -m pip install --break-system-packages fb-idb || python3 -m pip install --user fb-idb || echo "fb-idb 安裝失敗"
           export PATH="$PATH:$(python3 -m site --user-base)/bin"
-          which idb idb_companion
+          which idb idb_companion || true
           idb_companion --udid "$UDID" --grpc-port 10882 > shots/companion-log.txt 2>&1 &
           sleep 6
           idb connect localhost 10882 || echo "連線失敗"
