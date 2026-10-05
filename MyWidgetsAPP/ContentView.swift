@@ -2006,7 +2006,9 @@ struct WidgetEditorView: View {
             // 分類列改到底部；移除圖層跳轉與步進鈕，將垂直空間還給屬性內容。
             EditorCategoryBarHost(state: session.categoryBar, selection: $session.category,
                                   titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
-            // 分類列容器從螢幕邊開始，玻璃左右各離 20 由容器自己排（10/05 起玻璃縮小到 46）。
+            // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
+            // （右邊原本有移動步進的「…」，10/05 移進「版面」的位置與大小區塊，右邊改成和左邊一樣。）
+            .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
             .padding(.vertical, FormlessDesign.Space.floatingBottom)
             .opacity(keyboard.visible ? 0 : 1)
             .allowsHitTesting(!keyboard.visible)
@@ -5732,8 +5734,8 @@ enum EditorPanelUnderlap {
     /// 工具列下緣到第一個圖層的視覺距離要等於畫布底到工具列上緣（約 20 pt）；8 的時候下面多了 4 pt（使用者指出）。
     /// 淡化遮罩掛在清單上，跟著清單一起移動，淡出帶相對內容不變。
     static let pickingHeight: CGFloat = 4
-    /// 屬性面板 Form 的底部內距（不含安全區）：分類列佔玻璃高度加上下各 5，再留 28 讓最後一張卡片捲到分類列上方不被擋住。
-    static let formBottom: CGFloat = EditorCategoryTabBarContainer.glassHeight + 2 * FormlessDesign.Space.floatingBottom + 28
+    /// 屬性面板 Form 的底部內距（不含安全區）：分類列佔 58（48 + 上下各 5），再留 28 讓最後一張卡片捲到分類列上方不被擋住。
+    static let formBottom: CGFloat = 58 + 28
     /// 屬性面板頂端內距（區塊都沒有標題）：畫布到第一張卡片 29 pt，和圖層清單完全相同（清單 24 + 卡片外距 5）。
     static let formHeadlessHeight: CGFloat = formHeight + 13
     /// 屬性面板 Form 的頂端內距：Form 第一個分段標題本身就帶約 20 pt 的上方留白，補到和清單一樣約 28 pt；
