@@ -3227,22 +3227,33 @@ extension UINavigationBar {
 /// 縮放用 view 本身的 transform、固定不變（不跟著捲動、不做動畫）：10/05 試過用 sublayerTransform 跟著捲動縮放，
 /// 切換分類時玻璃動畫會出錯；原本只壓縱向 0.88 的做法用的就是 view 的 transform，切換一直正常。
 final class EditorCompactGlassTabBar: UITabBar {
-    /// 整條列的縮放（由容器依目標高度算出）。文字反向放大回原尺寸。
+    /// 整條列的縮放（由容器依目標高度算出）。
     var scale: CGFloat = 1 {
-        didSet { if abs(scale - oldValue) > 0.0001 { setNeedsLayout() } }
+        didSet {
+            guard abs(scale - oldValue) > 0.0001 else { return }
+            applyFontScale()
+            setNeedsLayout()
+        }
+    }
+    /// 文字實際顯示的大小：字型先放大 1/scale，整條縮小後剛好是這個大小。
+    /// 不用反向縮放文字：切換分類時系統會另外畫一份標題在玻璃鏡片裡，那一份不會跟著反向縮放，
+    /// 切換的瞬間字會變小（10/05 模擬器錄影看到）；直接放大字型，每一份都一樣大。
+    static let displayFontSize: CGFloat = 17
+    override var items: [UITabBarItem]? {
+        didSet { applyFontScale() }
     }
     override func layoutSubviews() {
         super.layoutSubviews()
         layer.setAffineTransform(CGAffineTransform(scaleX: scale, y: scale))
-        restoreTextScale(in: self)
     }
-
-    private func restoreTextScale(in view: UIView) {
-        for subview in view.subviews {
-            if let label = subview as? UILabel {
-                label.layer.setAffineTransform(CGAffineTransform(scaleX: 1 / scale, y: 1 / scale))
+    private func applyFontScale() {
+        let size = Self.displayFontSize / max(scale, 0.1)
+        for item in items ?? [] {
+            for (state, weight) in [(UIControl.State.normal, UIFont.Weight.regular), (.selected, .semibold)] {
+                var attributes = item.titleTextAttributes(for: state) ?? [:]
+                attributes[.font] = UIFont.systemFont(ofSize: size, weight: weight)
+                item.setTitleTextAttributes(attributes, for: state)
             }
-            restoreTextScale(in: subview)
         }
     }
 
