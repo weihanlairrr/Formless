@@ -90,7 +90,7 @@ enum FormlessDesign {
         static let compactControl: CGFloat = 32
         /// 玻璃圓鈕。
         static let glassButton: CGFloat = 44
-        /// 底部浮動列（分類列、「＋」「…」）。
+        /// 浮動列（分類列、「＋」「…」）。
         static let floatingBar: CGFloat = 48
         /// 輸入框寬度：一般數字、色碼與經緯度。
         static let fieldShort: CGFloat = 72

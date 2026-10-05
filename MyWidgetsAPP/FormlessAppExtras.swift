@@ -3245,13 +3245,19 @@ final class EditorCompactGlassTabBar: UITabBar {
     }
 }
 
-/// 承載分類列的容器：SwiftUI 只排這個容器，分頁列本身是它的子視圖，縮放的 transform 只動子視圖，
-/// 不會被 SwiftUI 重排時覆寫。
+/// 承載分類列的容器：SwiftUI 只排這個容器，分頁列本身包在一層普通的縮放視圖裡。
+/// 分類列一直維持縮小（2026-10-05 使用者要求）：縮放放在分頁列外層這個普通 UIView 的 transform 上，分頁列自己一點都不動。
+/// 不用分頁列 layer 的 sublayerTransform：UIKit 換算座標時不算 sublayerTransform，系統的鏡片（按下放大、滑動、
+/// 經過的字變色）照原尺寸計算，縮小後切換動畫就和畫面對不上。外層 view 的 transform 會算進座標換算，
+/// 分頁列看到的就是一條正常大小的列，切換動畫和原尺寸完全相同，只是整條變小。
+/// SwiftUI 會重設它直接承載的視圖（這個容器）的 transform，所以縮放視圖必須是容器的子視圖。
 final class EditorCategoryTabBarContainer: UIView {
     let bar = EditorCompactGlassTabBar()
+    private let scaler = UIView()
     override init(frame: CGRect) {
         super.init(frame: frame)
-        addSubview(bar)
+        addSubview(scaler)
+        scaler.addSubview(bar)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     // 尺寸完全轉發給分頁列：SwiftUI 量到的是 UITabBar 自己的原生尺寸，和原本直接承載時一樣，
@@ -3268,6 +3274,10 @@ final class EditorCategoryTabBarContainer: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         // 用 bounds／center 而不是 frame：帶著 transform 時設 frame 會失真。
+        let scale = FormlessMinimizeState.minimizedScale
+        scaler.bounds = bounds
+        scaler.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        scaler.transform = CGAffineTransform(scaleX: scale, y: scale)
         bar.bounds = bounds
         bar.center = CGPoint(x: bounds.midX, y: bounds.midY)
     }
@@ -3277,15 +3287,10 @@ final class EditorCategoryTabBarContainer: UIView {
 struct EditorCategoryTabBar: UIViewRepresentable {
     @Binding var selection: String
     let titles: [String]
-    /// 整條列的縮放狀態：把分頁列的 layer 登記給它，縮放（sublayerTransform 的彈簧動畫）由它統一套用。
-    var minimizeState: FormlessMinimizeState? = nil
-    /// 使用者點了任一分頁時另外通知外層（縮小狀態下用來順便展開）；不影響分頁列本身。
-    var onSelect: () -> Void = {}
     func makeCoordinator() -> Coordinator { Coordinator(selection: $selection, titles: titles) }
     func makeUIView(context: Context) -> EditorCategoryTabBarContainer {
         let container = EditorCategoryTabBarContainer()
         let bar = container.bar
-        minimizeState?.register { [weak bar] in bar?.layer }
         bar.delegate = context.coordinator
         bar.itemPositioning = .fill
         bar.tintColor = FormlessDesign.Palette.accentUI
@@ -3314,7 +3319,6 @@ struct EditorCategoryTabBar: UIViewRepresentable {
         let bar = container.bar
         context.coordinator.selection = $selection
         context.coordinator.titles = titles
-        context.coordinator.onSelect = onSelect
         if bar.items?.compactMap(\.title) != titles { bar.items = items() }
         guard !context.coordinator.handlingSelection else { return }
         let index = titles.firstIndex(of: selection) ?? 0
@@ -3323,7 +3327,6 @@ struct EditorCategoryTabBar: UIViewRepresentable {
     final class Coordinator: NSObject, UITabBarDelegate {
         var selection: Binding<String>
         var titles: [String]
-        var onSelect: () -> Void = {}
         var handlingSelection = false
         init(selection: Binding<String>, titles: [String]) {
             self.selection = selection
@@ -3333,7 +3336,6 @@ struct EditorCategoryTabBar: UIViewRepresentable {
             // 玻璃位移交給 UIKit 原生處理；內容在點擊當下立即切換。
             // 分頁列所在容器不會因內容切換而重建，原生動畫才能完整播完。
             commit(item)
-            onSelect()
         }
         private func commit(_ item: UITabBarItem) {
             guard titles.indices.contains(item.tag) else { return }
@@ -3344,7 +3346,7 @@ struct EditorCategoryTabBar: UIViewRepresentable {
     }
 }
 
-/// 分頁列／分類列的縮放狀態。獨立的 ObservableObject，只讓那條列本身觀察，捲動中反覆縮放不會重繪整個畫面。
+/// 首頁分頁列的縮放狀態。獨立的 ObservableObject，只讓那條列本身觀察，捲動中反覆縮放不會重繪整個畫面。
 @MainActor final class FormlessMinimizeState: ObservableObject {
     /// 刻意不用 @Published：縮放是直接套在分頁列的圖層上，沒有任何畫面讀這個值。原本它一變，
     /// 擁有它的整個首頁（三個分頁一起）或分類列就重畫一次：捲到縮小的那一刻、縮小後切換分頁時，
@@ -3654,7 +3656,7 @@ struct FormlessScrollViewProbe: UIViewRepresentable {
 }
 
 /// 首頁分頁列的縮放：TabView 的分頁列是系統的 UITabBar，SwiftUI 碰不到它，從視窗裡找出來登記給狀態物件，
-/// 分頁列本身（項目、玻璃、選取）一概不改，只是整條變小；和屬性面板分類列的縮法一致。
+/// 分頁列本身（項目、玻璃、選取）一概不改，只是整條變小。
 struct FormlessHomeTabBarScaler: UIViewRepresentable {
     let state: FormlessMinimizeState
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -3703,21 +3705,17 @@ struct FormlessHomeTabBarScaler: UIViewRepresentable {
     }
 }
 
-/// 屬性面板底部的分類列：獨立成小視圖、只觀察分類列自己的狀態，捲動中反覆縮放不會重繪整個編輯器。
-/// 分類列本身就是原本那條系統 UITabBar，一個項目都不動；縮小只是整條列（連玻璃）以彈簧縮到 0.85，
-/// 像 Instagram 那樣稍微變小，反向捲動、回到頂端或點任一分頁就彈回原尺寸。
+/// 屬性面板底部的分類列：獨立成小視圖。
+/// 分類列本身就是原本那條系統 UITabBar，一個項目都不動；整條列（連玻璃）一直維持縮小（0.85，和首頁分頁列縮小時一樣），
+/// 不跟著捲動放大縮小（縮放方式見 `EditorCategoryTabBarContainer`）。
 struct EditorCategoryBarHost: View {
     /// 系統分頁列的玻璃條離自己的框左右各約 20（實測）。
     static let barGlassInset: CGFloat = 20
-    /// 只是轉交給分頁列登記圖層，不觀察它：縮小／恢復不需要重畫這一列。
-    let state: FormlessMinimizeState
     @Binding var selection: String
     let titles: [String]
     var body: some View {
-        EditorCategoryTabBar(selection: $selection, titles: titles, minimizeState: state) {
-            state.restoreForTabSwitch()
-        }
-        .frame(height: 48)
+        EditorCategoryTabBar(selection: $selection, titles: titles)
+            .frame(height: FormlessDesign.Size.floatingBar)
     }
 }
 

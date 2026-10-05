@@ -2002,22 +2002,22 @@ struct WidgetEditorView: View {
         // 只淡化捲動內容；底色保持連續並遮住背後的圖層，玻璃按鈕保持完整亮度。
         .mask(alignment: .top) { EditorPanelMask(fade: session.inspectorFade) }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .bottom) {
-            // 分類列改到底部；移除圖層跳轉與步進鈕，將垂直空間還給屬性內容。
-            EditorCategoryBarHost(state: session.categoryBar, selection: $session.category,
+        .overlay(alignment: .top) {
+            // 分類列浮在畫布正下方，蓋住頂端淡化帶（2026-10-05 使用者要求）：內容往上捲時從分類列底下經過、在那裡淡出。
+            // 畫在遮罩外面，分類列本身不會被淡化。
+            EditorCategoryBarHost(selection: $session.category,
                                   titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
             // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
             // （右邊原本有移動步進的「…」，10/05 移進「版面」的位置與大小區塊，右邊改成和左邊一樣。）
             .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
-            .padding(.vertical, FormlessDesign.Space.floatingBottom)
+            .padding(.top, EditorPanelUnderlap.categoryTop)
             .opacity(keyboard.visible ? 0 : 1)
             .allowsHitTesting(!keyboard.visible)
             .accessibilityHidden(keyboard.visible)
         }
-        // 切換分類回到預設狀態：分類列放大回來、頂端淡化歸零（新分頁的 Form 剛出現時不一定會回報幾何，會沿用上一個分頁的淡化）。
+        // 切換分類回到預設狀態：頂端淡化歸零（新分頁的 Form 剛出現時不一定會回報幾何，會沿用上一個分頁的淡化）。
         .onChange(of: session.category) { _, _ in
             endEditing()
-            session.categoryBar.set(false)
             session.inspectorFade.update(scrollOffset: 0)
         }
     }
@@ -4834,7 +4834,6 @@ struct LayerInspector: View {
                 }
             }
               .background(EditorScrollMemory(session: session, key: layer.id.uuidString + ":" + category))
-              .formlessScrollMinimizer(state: session.categoryBar)
               .scrollDismissesKeyboard(.interactively)
               // 屬性面板所有區塊都不放標題，頂端統一補上標題原本自帶的留白，畫布到第一張卡片 28 pt。
               .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: EditorPanelUnderlap.formHeadlessHeight) }
@@ -5734,10 +5733,14 @@ enum EditorPanelUnderlap {
     /// 工具列下緣到第一個圖層的視覺距離要等於畫布底到工具列上緣（約 20 pt）；8 的時候下面多了 4 pt（使用者指出）。
     /// 淡化遮罩掛在清單上，跟著清單一起移動，淡出帶相對內容不變。
     static let pickingHeight: CGFloat = 4
-    /// 屬性面板 Form 的底部內距（不含安全區）：分類列佔 58（48 + 上下各 5），再留 28 讓最後一張卡片捲到分類列上方不被擋住。
-    static let formBottom: CGFloat = 58 + 28
-    /// 屬性面板頂端內距（區塊都沒有標題）：畫布到第一張卡片 29 pt，和圖層清單完全相同（清單 24 + 卡片外距 5）。
-    static let formHeadlessHeight: CGFloat = formHeight + 13
+    /// 屬性面板 Form 的底部內距（不含安全區）：分類列移到上面後，最後一張卡片下方只留 28。
+    static let formBottom: CGFloat = 28
+    /// 分類列（浮在畫布正下方）的框離畫布的距離：卡片間距。
+    static let categoryTop: CGFloat = FormlessDesign.Space.cardGap
+    /// 屬性面板頂端內距（區塊都沒有標題）：停住時第一張卡片在分類列下方，畫布到玻璃、玻璃到第一張卡片一樣遠（實測 13.2／13.3 pt）。
+    /// 分類列的框 48、縮小後的玻璃約 46 置中在框裡；扣掉 Form 第一張卡片自帶的約 8 pt 外距。
+    /// 玻璃下緣離畫布約 59 pt，和頂端淡化帶（60 pt）重疊：內容往上捲時就在分類列底下淡出。
+    static let formHeadlessHeight: CGFloat = categoryTop * 2 + FormlessDesign.Size.floatingBar - 7.5
     /// 屬性面板 Form 的頂端內距：Form 第一個分段標題本身就帶約 20 pt 的上方留白，補到和清單一樣約 28 pt；
     /// 原本兩份疊在一起有 56 pt，離畫布太遠、浪費空間。
     static let formHeight: CGFloat = 8
