@@ -28,6 +28,7 @@ jobs:
           [ -z "$XC" ] && XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
           sudo xcode-select -s "$XC"
           xcodebuild -version
+          echo "::notice::可用 $(ls -d /Applications/Xcode*.app | xargs -n1 basename | tr '\n' ' ')；使用 $(basename "$XC")"
 
       - name: 編譯
         run: |
@@ -42,9 +43,17 @@ jobs:
             | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
 
+      # 錯誤轉成 GitHub 的標註（annotations），在 Actions 頁面與 API 上都看得到。
       - name: 編譯錯誤
         if: failure()
-        run: grep -E "error:" build.log | sort -u | head -50 || true
+        run: |
+          # 一個步驟最多顯示 10 個標註：所有錯誤併成一則（%0A 是換行）。
+          if grep -q "error:" build.log; then
+            MSG=$(grep -E "error:" build.log | sed "s|$GITHUB_WORKSPACE/||" | sort -u | head -60 | awk '{printf "%s%%0A", $0}')
+          else
+            MSG=$(tail -40 build.log | awk '{printf "%s%%0A", $0}')
+          fi
+          echo "::error::$MSG"
 
       - name: 打包 ipa
         run: |
