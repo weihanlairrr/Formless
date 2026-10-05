@@ -1,0 +1,19 @@
+2026-10-05 12:57:47.828+0000 IDB Companion Built at Oct 1 2026 08:27:41
+2026-10-05 12:57:47.836+0000 IDB Companion architecture arm64
+2026-10-05 12:57:47.837+0000 Invoked with args=[/opt/homebrew/bin/idb_companion, --udid, A7B1EDCF-7965-4B81-B431-0ABB10CCA986, --grpc-port, 10882]
+2026-10-05 12:57:47.839+0000 Providing targets across Simulator and Device sets.
+2026-10-05 12:57:47.839+0000 CoreSimulator: Already loaded, skipping
+2026-10-05 12:57:47.840+0000 CoreSimulator: SimDevice has correct path of /Library/Developer
+2026-10-05 12:57:47.840+0000 Loaded All Private Frameworks [CoreSimulator]
+2026-10-05 12:57:49.672+0000 MobileDevice: Loading from /System/Library/PrivateFrameworks/MobileDevice.framework
+2026-10-05 12:57:49.699+0000 MobileDevice: Successfully loaded
+2026-10-05 12:57:49.699+0000 Loaded All Private Frameworks [MobileDevice]
+2026-10-05 12:57:49.769+0000 MobileDevice: Loading from /System/Library/PrivateFrameworks/MobileDevice.framework
+2026-10-05 12:57:49.769+0000 MobileDevice: Successfully loaded
+2026-10-05 12:57:49.769+0000 Loaded All Private Frameworks [MobileDevice]
+2026-10-05 12:57:50.302+0000 Starting swift server on tcp port 10882
+2026-10-05 12:57:50.346+0000 Swift server started on [ipv6]:::10882
+{"grpc_port":10882,"grpc_swift_port":10882}
+2026-10-05 12:57:50.348+0000 Companion will stay alive if target goes offline
+2026-10-05 12:57:56.104+0000 connect called with: [metadata=[:], localFilePath=/var/folders/8w/whtvfj6d6cg_371l4sz3b1j40000gn/T/tmpy7vvjh5e]
+2026-10-05 12:57:56.106+0000 connect succeeded in 1ms

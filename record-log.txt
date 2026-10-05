@@ -1,0 +1,54 @@
+[34m==>[0m [1mTapping facebook/fb[0m
+Cloning into '/opt/homebrew/Library/Taps/facebook/homebrew-fb'...
+Tapped 8 formulae (26 files, 5.9MB).
+[34m==>[0m [1mTrusted formula facebook/fb/idb-companion[0m
+[34m==>[0m [1mWould install 1 formula:[0m
+facebook/fb/idb-companion 1.6.4
+[32m==>[0m [1mFetching downloads for: [32midb-companion[39m[0m
+✔︎ Formula idb-companion (1.6.4)
+[34m==>[0m [1mInstalling idb-companion from facebook/fb[0m
+🍺  /opt/homebrew/Cellar/idb-companion/1.6.4: 36 files, 102.5MB, built in 29 seconds
+Collecting fb-idb
+  Downloading fb_idb-1.6.5-py3-none-any.whl.metadata (9.3 kB)
+Collecting aiofiles (from fb-idb)
+  Downloading aiofiles-25.1.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting grpclib>=0.4.0 (from fb-idb)
+  Downloading grpclib-0.4.9-py3-none-any.whl.metadata (6.1 kB)
+Collecting protobuf>=7.35.1 (from fb-idb)
+  Downloading protobuf-7.36.2-cp310-abi3-macosx_10_9_universal2.whl.metadata (595 bytes)
+Collecting h2<5,>=3.1.0 (from grpclib>=0.4.0->fb-idb)
+  Downloading h2-4.4.1-py3-none-any.whl.metadata (3.8 kB)
+Collecting multidict (from grpclib>=0.4.0->fb-idb)
+  Downloading multidict-7.0.0-cp314-cp314-macosx_11_0_arm64.whl.metadata (6.2 kB)
+Collecting hyperframe<7,>=6.1 (from h2<5,>=3.1.0->grpclib>=0.4.0->fb-idb)
+  Downloading hyperframe-6.1.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting hpack<5,>=4.2 (from h2<5,>=3.1.0->grpclib>=0.4.0->fb-idb)
+  Downloading hpack-4.2.0-py3-none-any.whl.metadata (3.3 kB)
+Downloading fb_idb-1.6.5-py3-none-any.whl (386 kB)
+Downloading grpclib-0.4.9-py3-none-any.whl (77 kB)
+Downloading h2-4.4.1-py3-none-any.whl (62 kB)
+Downloading hpack-4.2.0-py3-none-any.whl (34 kB)
+Downloading hyperframe-6.1.0-py3-none-any.whl (13 kB)
+Downloading protobuf-7.36.2-cp310-abi3-macosx_10_9_universal2.whl (456 kB)
+Downloading aiofiles-25.1.0-py3-none-any.whl (14 kB)
+Downloading multidict-7.0.0-cp314-cp314-macosx_11_0_arm64.whl (86 kB)
+Installing collected packages: protobuf, multidict, hyperframe, hpack, aiofiles, h2, grpclib, fb-idb
+
+Successfully installed aiofiles-25.1.0 fb-idb-1.6.5 grpclib-0.4.9 h2-4.4.1 hpack-4.2.0 hyperframe-6.1.0 multidict-7.0.0 protobuf-7.36.2
+/opt/homebrew/bin/idb
+/opt/homebrew/bin/idb_companion
+udid: A7B1EDCF-7965-4B81-B431-0ABB10CCA986 is_local: True
+com.weihan.formless: 17779
+cp: /Users/runner/Library/Developer/CoreSimulator/Devices/A7B1EDCF-7965-4B81-B431-0ABB10CCA986/data/Containers/Data/Application/25A8E227-FE8C-49B0-B292-8DB9999B48AA/Documents/tabbar.txt: No such file or directory
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import re,sys;l=open(sys.argv[1]).readline();print(*re.search(r'window \(([-0-9.]+), ([-0-9.]+), ([-0-9.]+), ([-0-9.]+)\)',l).groups())
+                    ~~~~^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/runner/Library/Developer/CoreSimulator/Devices/A7B1EDCF-7965-4B81-B431-0ABB10CCA986/data/Containers/Data/Application/25A8E227-FE8C-49B0-B292-8DB9999B48AA/Documents/tabbar.txt'
+分類列    
+Note: No display specified. Defaulting to display: FF419FEA-5626-4B9E-B8A2-07D483C94566 (screenID: 1, name: LCD)
+Recording started
+  File "<string>", line 1
+    print(round(+/2))
+                 ^
+SyntaxError: invalid syntax
