@@ -108,7 +108,7 @@ struct EditorDataPanel: View {
     private func panelForm<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         Form { content() }
             .scrollContentBackground(.hidden)
-            .listSectionSpacing(FormlessDesign.Space.panel)
+            .listSectionSpacing(FormlessDesign.Space.cardGap)
             .contentMargins(.horizontal, BatchPositionPanel.margin, for: .scrollContent)
             .contentMargins(.top, 0, for: .scrollContent)
             .contentMargins(.bottom, BatchPositionPanel.margin + FormlessSafeArea.bottom, for: .scrollContent)
@@ -654,7 +654,7 @@ struct EditorSourceSettingsForm: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .listSectionSpacing(FormlessDesign.Space.panel)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.horizontal, BatchPositionPanel.margin, for: .scrollContent)
         .contentMargins(.top, 0, for: .scrollContent)
         .contentMargins(.bottom, BatchPositionPanel.margin + FormlessSafeArea.bottom, for: .scrollContent)
@@ -888,7 +888,7 @@ struct EditorNewVariableForm: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .listSectionSpacing(FormlessDesign.Space.panel)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.horizontal, BatchPositionPanel.margin, for: .scrollContent)
         .contentMargins(.top, 0, for: .scrollContent)
         .contentMargins(.bottom, BatchPositionPanel.margin + FormlessSafeArea.bottom, for: .scrollContent)

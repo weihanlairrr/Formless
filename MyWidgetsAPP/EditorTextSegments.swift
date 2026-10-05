@@ -377,7 +377,7 @@ struct EditorFormatPanel: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .listSectionSpacing(FormlessDesign.Space.panel)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.horizontal, BatchPositionPanel.margin, for: .scrollContent)
         .contentMargins(.top, 0, for: .scrollContent)
         .contentMargins(.bottom, BatchPositionPanel.margin + FormlessSafeArea.bottom, for: .scrollContent)

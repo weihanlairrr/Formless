@@ -2065,7 +2065,7 @@ struct LayerPickerView: View {
         // 沒有分區標題了，卡片直接接在標題列下面（和「位置與大小」面板相同）；標題列本身已經留了上下空間。
         .contentMargins(.top, 0, for: .scrollContent)
         // 兩張卡片之間、最後一張到螢幕底部安全區上方都是 20 pt，和左右邊距相同。
-        .listSectionSpacing(FormlessDesign.Space.panel)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.bottom, FormlessDesign.Space.panel + FormlessSafeArea.bottom, for: .scrollContent)
         // 標題列和系統導覽列一樣半透明：內容捲到標題下方時霧化透出（使用者要求所有面板一致）。
         .safeAreaBar(edge: .top, spacing: 0) {

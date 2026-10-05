@@ -61,6 +61,8 @@ enum FormlessDesign {
         static let cardInset: CGFloat = 20
         /// 下方面板裡卡片到面板四邊的距離。
         static let panel: CGFloat = 20
+        /// 卡片與卡片之間的距離：全 App 統一用首頁小工具列的間距（每列上下各 6，2026-10-05 使用者要求）。
+        static let cardGap: CGFloat = 12
         /// 並排的小按鈕之間。
         static let tight: CGFloat = 8
         /// 並排的大元件（磚、圓鈕盤、格子）之間。

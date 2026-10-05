@@ -80,11 +80,12 @@ jobs:
           shot() {
             NAME=$1; shift
             xcrun simctl terminate "$UDID" com.weihan.formless 2>/dev/null || true
-            xcrun simctl launch "$UDID" com.weihan.formless "$@"
+            xcrun simctl launch "$UDID" com.weihan.formless -FormlessDebugSkipPermissions YES "$@"
             sleep 9
             xcrun simctl io "$UDID" screenshot "shots/$NAME.png"
           }
           shot 1-大型-版面 -FormlessDebugOpen 11111111-0000-0000-0000-000000000003 -FormlessDebugLayer 標題 -FormlessDebugTab 版面
+          shot 1b-大型-版面-畫布最高 -FormlessDebugOpen 11111111-0000-0000-0000-000000000003 -FormlessDebugLayer 標題 -FormlessDebugTab 版面 -formless.editorPreviewHeight.large 900
           shot 2-中型-版面 -FormlessDebugOpen 11111111-0000-0000-0000-000000000002 -FormlessDebugLayer 標題 -FormlessDebugTab 版面
           shot 3-小型-外觀 -FormlessDebugOpen 11111111-0000-0000-0000-000000000001 -FormlessDebugLayer 標題 -FormlessDebugTab 外觀
           shot 4-大型-清單 -FormlessDebugOpen 11111111-0000-0000-0000-000000000003

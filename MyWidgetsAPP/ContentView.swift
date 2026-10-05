@@ -410,7 +410,12 @@ struct ContentView: View {
         }
         #endif
 
+        #if DEBUG
+        // 開發用：模擬器自動截圖時不跳權限詢問（啟動參數 -FormlessDebugSkipPermissions YES）。
+        if !UserDefaults.standard.bool(forKey: "FormlessDebugSkipPermissions") { await requestPermissions() }
+        #else
         await requestPermissions()
+        #endif
 
         // 啟動時先用快取把畫面顯示出來，資料在背景更新
         warmCaches(force: true)
@@ -930,7 +935,7 @@ struct CreateWidgetView: View {
             // 卡片直接接在標題列下面（和新增圖層、位置與大小等面板相同，標題列本身已留好上下空間）；
             // 這裡的標題列是系統導覽列，實測 64 高，補 2 和其他面板的 66 標題列對齊。卡片到示意、示意到底都是 20。
             .contentMargins(.top, FormlessDesign.Size.titleBar - 64, for: .scrollContent)
-            .listSectionSpacing(FormlessDesign.Space.panel)
+            .listSectionSpacing(FormlessDesign.Space.cardGap)
             .formlessPageTitle("新增小工具")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -3513,7 +3518,7 @@ struct BatchPositionPanel: View {
         }
         .scrollContentBackground(.hidden)
         // 位置與大小、對齊是兩張卡片，中間的距離和其他面板相同。
-        .listSectionSpacing(FormlessDesign.Space.panel)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.horizontal, Self.margin, for: .scrollContent)
         // 標題列本身已在標題字下方留了約 22 pt（標題和其他面板同一個位置），卡片直接接在標題列下面，
         // 標題字到卡片的距離就和卡片到左右邊的 20 pt 差不多；再加一段邊距會多出一塊空白（使用者指出）。

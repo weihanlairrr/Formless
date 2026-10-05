@@ -28,6 +28,8 @@ struct FormlessApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // 全 App 的表單與清單：卡片之間的距離統一用首頁小工具列的間距（各頁面自己設的也是同一個值）。
+                .listSectionSpacing(FormlessDesign.Space.cardGap)
                 // 清單還在滑動時按下去只讓它停下，不觸發列的動作（全 App）。
                 .formlessScrollStopTapGuard()
                 // 小工具點下去帶來的網址。系統一律先打開 Formless（小工具不能直接開別的 App）：

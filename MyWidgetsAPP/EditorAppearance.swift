@@ -788,7 +788,7 @@ struct EditorStylePanel: View {
             Section { formRows }
         }
         .scrollContentBackground(.hidden)
-        .listSectionSpacing(0)
+        .listSectionSpacing(FormlessDesign.Space.cardGap)
         .contentMargins(.horizontal, BatchPositionPanel.margin, for: .scrollContent)
         // 和「位置與大小」面板相同：卡片直接接在標題列下面，底部留一個邊距加螢幕底部安全區。
         .contentMargins(.top, 0, for: .scrollContent)
