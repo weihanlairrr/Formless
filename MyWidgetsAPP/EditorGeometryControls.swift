@@ -208,7 +208,7 @@ struct EditorGeometryControls: View, Equatable {
                                selection: AnyHashable(step),
                                onSelect: { id in if let value = id.base as? Double { step = value } }) {
                 HStack(spacing: 4) {
-                    Text("移動步進：\(Int(step))")
+                    Text("步進：\(Int(step))")
                     Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
                 }
                 .font(.subheadline)
