@@ -1965,9 +1965,16 @@ struct WidgetEditorView: View {
     private var inspectorPanel: some View {
         // 分類固定在面板頂端（畫布正下方），內容在它下面捲動，不再浮在內容上（2026-10-05 方案 A：
         // 原本底部的浮動分類列在空間少時擋住內容，縮小後切換分類的玻璃動畫也會出錯）。
+        // 分類列本身和原本一樣是系統 UITabBar 的 Liquid Glass（使用者要求保留），大小不變、不跟著捲動縮放。
+        // 分類列和內容是同一個 VStack 的兄弟：切換分類時只有內容換 id，分類列不會被重建，玻璃動畫才能完整播完。
         VStack(spacing: 0) {
-            EditorCategoryPicker(selection: $session.category,
+            EditorCategoryTabBar(selection: $session.category,
                                  titles: model.selectedLayer?.group == true ? ["版面", "其他"] : ["版面", "外觀", "內容", "其他"])
+                .frame(height: 48)
+                // 系統分頁列的玻璃條畫在自己框內再往內 20 的位置：框從螢幕邊開始，玻璃條左右兩緣才會都落在 20。
+                .padding(.horizontal, FormlessDesign.Space.edge - EditorCategoryBarHost.barGlassInset)
+                .padding(.top, 6)
+                .padding(.bottom, 2)
                 .opacity(model.selectedLayer == nil ? 0 : 1)
             inspectorContent
         }

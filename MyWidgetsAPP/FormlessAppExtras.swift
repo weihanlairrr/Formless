@@ -3703,23 +3703,6 @@ struct FormlessHomeTabBarScaler: UIViewRepresentable {
     }
 }
 
-/// 屬性面板頂端的分類（版面、外觀、內容、其他）：系統的分段控制，固定在畫布正下方，內容在它下面捲動。
-/// 不縮放、不浮在內容上（2026-10-05 方案 A，取代底部的浮動分類列）。上下各留 12，左右照全 App 的邊線。
-struct EditorCategoryPicker: View {
-    @Binding var selection: String
-    let titles: [String]
-    var body: some View {
-        Picker("分類", selection: $selection) {
-            ForEach(titles, id: \.self) { Text($0).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .padding(.horizontal, FormlessDesign.Space.edge)
-        .padding(.vertical, 12)
-        .accessibilityIdentifier("editor-category-tabs")
-    }
-}
-
 /// 屬性面板底部的分類列：獨立成小視圖、只觀察分類列自己的狀態，捲動中反覆縮放不會重繪整個編輯器。
 /// 分類列本身就是原本那條系統 UITabBar，一個項目都不動；縮小只是整條列（連玻璃）以彈簧縮到 0.85，
 /// 像 Instagram 那樣稍微變小，反向捲動、回到頂端或點任一分頁就彈回原尺寸。
