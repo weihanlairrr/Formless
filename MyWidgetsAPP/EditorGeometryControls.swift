@@ -198,7 +198,7 @@ struct EditorGeometryControls: View, Equatable {
         .padding(.vertical, 4)
     }
     /// 移動步進：方向鍵每按一下加減多少，是方向鍵的設定，和方向鍵放在同一列、中間不加分隔線（使用者：屬於移動、不屬於對齊）。
-    /// 放在方塊右下方（2026-10-05 使用者要求，原本在右上方），和對齊區的「對齊基準」同一種選單：點了才列出選項，不會按方向鍵時誤改
+    /// 放在方塊右上方（10/05 試過右下方，使用者決定改回右上方），和對齊區的「對齊基準」同一種選單：點了才列出選項，不會按方向鍵時誤改
     /// （10/05 先做成方塊下方的分段控制，緊貼「向下」鍵，使用者回報容易誤點）。原本在屬性面板分類列右邊的「…」選單。
     private static let stepChoices: [Double] = [1, 10, 50]
     private var stepMenu: some View {
@@ -261,8 +261,8 @@ struct EditorGeometryControls: View, Equatable {
     @State private var padRowWidth: CGFloat?
     private func pads(_ frame: FormlessFrame) -> some View {
         VStack(spacing: 8) {
-            padRow(frame, size: padSize)
             stepMenu
+            padRow(frame, size: padSize)
         }
             .frame(maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { padRowWidth = $0 }

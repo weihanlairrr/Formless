@@ -1,4 +1,4 @@
-# 推到 main 就在 GitHub 的 Mac 上編譯，打包成 SideStore 可以安裝的 .ipa，放到 Releases。
+# 推到 main 就在 GitHub 的 Mac 上編譯；commit 訊息含「[發布]」時再打包成 SideStore 可以安裝的 .ipa，放到 Releases。
 # 不需要 Apple 憑證：只做假簽名（ldid）把 App Group 權限寫進去，真正的簽名由手機上的 SideStore 處理。
 name: 編譯
 
@@ -56,7 +56,9 @@ jobs:
           fi
           echo "::error::$MSG"
 
+      # 只有 commit 訊息含「[發布]」才打包、放到 Releases；其他推送只確認編譯得過。
       - name: 打包 ipa
+        if: contains(github.event.head_commit.message, '[發布]') || github.event_name == 'workflow_dispatch'
         run: |
           brew install ldid
           APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
@@ -71,6 +73,7 @@ jobs:
           echo "NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: 發布到 Releases
+        if: contains(github.event.head_commit.message, '[發布]') || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
